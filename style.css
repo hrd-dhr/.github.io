@@ -570,99 +570,181 @@ body {
     color: var(--error);
 }
 
-/* === Invite Code Screen === */
-.invite-screen {
+/* === Invite Banner === */
+.invite-banner {
     position: fixed;
-    inset: 0;
-    background: var(--bg-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 300;
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 20px;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+    animation: slideDown 0.4s ease;
 }
 
-.invite-screen.hidden {
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.invite-banner.hidden {
     display: none;
 }
 
-.invite-card {
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-    padding: 40px 32px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
+.invite-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 900px;
+    margin: 0 auto;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
-.invite-icon {
-    margin-bottom: 24px;
+.invite-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.invite-banner-left svg {
     color: var(--accent);
 }
 
-.invite-card h1 {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-}
-
-.invite-desc {
+.invite-banner-text {
+    font-size: 13px;
     color: var(--text-secondary);
-    font-size: 14px;
-    margin-bottom: 28px;
-    line-height: 1.6;
 }
 
-.invite-input-container {
+.invite-code-code {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    color: var(--teal);
+    background: var(--bg-tertiary);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.invite-code-code:hover {
+    background: var(--bg-hover);
+}
+
+.invite-banner-right {
     display: flex;
-    flex-direction: column;
-    gap: 14px;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
-.invite-input {
-    width: 100%;
-    padding: 14px 18px;
+.invite-input-sm {
+    padding: 7px 12px;
     background: var(--bg-primary);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 15px;
+    font-size: 13px;
     font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-    text-align: center;
-    letter-spacing: 4px;
+    letter-spacing: 2px;
+    width: 180px;
     transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.invite-input:focus {
+.invite-input-sm:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-light);
+    box-shadow: 0 0 0 2px var(--accent-light);
 }
 
-.invite-input::placeholder {
+.invite-input-sm::placeholder {
     color: var(--text-muted);
     letter-spacing: 0;
-    text-align: left;
+    font-family: inherit;
+    font-size: 12px;
 }
 
-.invite-error {
-    color: var(--error);
+.btn-sm {
+    padding: 7px 14px;
     font-size: 13px;
-    margin-top: 14px;
-    animation: fadeIn 0.3s ease;
+    border-radius: var(--radius-sm);
+    gap: 6px;
 }
 
-.invite-error.hidden {
+.invite-error-sm {
+    color: var(--error);
+    font-size: 12px;
+    animation: shake 0.4s ease;
+}
+
+.invite-error-sm.hidden {
     display: none;
 }
 
-/* Logout button */
-.btn-icon {
-    padding: 8px;
-    min-width: 36px;
-    justify-content: center;
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* Auth status indicator in header */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: default;
+    transition: all var(--transition);
+}
+
+.auth-status.authenticated {
+    background: var(--teal-light);
+    color: var(--teal);
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--error);
+    transition: background var(--transition);
+}
+
+.auth-status.authenticated .status-dot {
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+/* Disabled state overlay */
+.main-content.locked {
+    position: relative;
+    pointer-events: none;
+    filter: blur(4px) grayscale(0.5);
+    opacity: 0.5;
+}
+
+.main-content.locked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 17, 23, 0.3);
+    z-index: 5;
+    cursor: not-allowed;
 }
 
 /* === Responsive === */
