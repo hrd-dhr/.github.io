@@ -4,7 +4,7 @@
  */
 
 // API endpoint
-const API_BASE = "https://orange-drinks-build.loca.lt";
+const API_BASE = "https://moody-cobras-raise.loca.lt";
 
 // State
 let currentConversationId = null;
