@@ -4,7 +4,7 @@
  */
 
 // API endpoint
-const API_BASE = "https://silver-drinks-mate.loca.lt";
+const API_BASE = "https://breezy-planets-arrive.loca.lt";
 
 // State
 let currentConversationId = null;
