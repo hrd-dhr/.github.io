@@ -141,6 +141,10 @@ async function streamResponse(userContent) {
     // Create a streaming message bubble
     const assistantBubble = addAssistantMessage("", true);
 
+    // Variables need to be accessible in both try and catch
+    let fullContent = "";
+    let currentEventType = "";
+
     try {
         const response = await apiFetch(
             `${API_BASE}/api/conversations/${currentConversationId}/message`,
@@ -158,8 +162,6 @@ async function streamResponse(userContent) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
-        let fullContent = "";
-        let currentEventType = "";
 
         while (true) {
             const { done, value } = await reader.read();
