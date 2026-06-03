@@ -88,6 +88,17 @@ async function handleGenerate() {
     const content = welcomeInput.value.trim();
     if (!content || isStreaming) return;
 
+    // Show loading immediately (synchronous, before any async work)
+    isStreaming = true;
+    generateBtn.disabled = true;
+    loadingOverlay.classList.remove("hidden");
+
+    // Switch to conversation view and add user message BEFORE awaiting
+    showConversationView();
+    addUserMessage(content);
+    welcomeInput.value = "";
+    welcomeInput.style.height = "auto";
+
     // Create conversation
     try {
         const response = await apiFetch(`${API_BASE}/api/conversations`, {
@@ -99,20 +110,13 @@ async function handleGenerate() {
         const data = await response.json();
         currentConversationId = data.conversation_id;
 
-        // Switch to conversation view
-        showConversationView();
-
-        // Send user message
-        addUserMessage(content);
-
-        // Clear input
-        welcomeInput.value = "";
-        welcomeInput.style.height = "auto";
-
         // Stream response
         await streamResponse(content);
     } catch (error) {
         showError(error.message);
+        loadingOverlay.classList.add("hidden");
+        isStreaming = false;
+        generateBtn.disabled = false;
     }
 }
 
