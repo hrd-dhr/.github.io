@@ -4,7 +4,7 @@
  */
 
 // API endpoint — updated by restart-tunnel.sh
-const API_BASE = "https://sad-moose-think.loca.lt";
+const API_BASE = "https://green-flies-brake.loca.lt";
 
 // Invite codes shown on the banner
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
