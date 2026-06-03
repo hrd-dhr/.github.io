@@ -4,7 +4,7 @@
  */
 
 // API endpoint — updated by restart-tunnel.sh
-const API_BASE = "https://dirty-rockets-relate.loca.lt";
+const API_BASE = "https://wide-shoes-ring.loca.lt";
 
 // Invite codes shown on the banner
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
