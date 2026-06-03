@@ -4,8 +4,8 @@
  */
 
 // API endpoint — update this when the tunnel URL changes
-// Current tunnel: https://weak-days-worry.loca.lt
-const API_BASE = "https://weak-days-worry.loca.lt";
+// Current tunnel: https://planer-web-test.loca.lt
+const API_BASE = "https://planer-web-test.loca.lt";
 
 // Invite codes removed — no auth required
 // const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
