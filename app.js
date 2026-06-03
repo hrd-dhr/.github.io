@@ -1,68 +1,43 @@
 /**
  * Urban Scientist Planner - Frontend Application
- * Handles conversation flow, SSE streaming, and markdown rendering.
+ * Document-style plan viewer with iterative refinement.
  */
 
-// API endpoint — dynamically uses the same host as the page
+// API endpoint
 const API_BASE = "https://honest-toys-attack.loca.lt";
-
-// Invite codes removed — no auth required
-// const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
 
 // State
 let currentConversationId = null;
 let isStreaming = false;
+let currentPlanContent = "";
 
 // DOM Elements
-// Invite elements removed
 const welcomeScreen = document.getElementById("welcome-screen");
 const mainContent = document.querySelector(".main-content");
-const conversationView = document.getElementById("conversation-view");
+const planView = document.getElementById("plan-view");
+const planContentEl = document.getElementById("plan-content");
+const streamingCursor = document.getElementById("streaming-cursor");
 const welcomeInput = document.getElementById("welcome-input");
-const chatInput = document.getElementById("chat-input");
+const feedbackInput = document.getElementById("feedback-input");
 const generateBtn = document.getElementById("generate-btn");
-const sendBtn = document.getElementById("send-btn");
-const newConversationBtn = document.getElementById("new-conversation-btn");
-const messagesContainer = document.getElementById("messages-container");
+const sendFeedbackBtn = document.getElementById("send-feedback-btn");
+const newPlanBtn = document.getElementById("new-plan-btn");
+const copyBtn = document.getElementById("copy-btn");
+const planStatus = document.getElementById("plan-status");
 const loadingOverlay = document.getElementById("loading-overlay");
-
-// App is always unlocked
-setLockedState(false);
-
-function setLockedState(locked) {
-    welcomeInput.disabled = locked;
-    chatInput.disabled = locked;
-    generateBtn.disabled = locked;
-    sendBtn.disabled = false;
-
-    if (locked) {
-        mainContent.classList.add("locked");
-    } else {
-        mainContent.classList.remove("locked");
-        welcomeInput.focus();
-    }
-}
-
-// Helper: fetch without invite code header
-function apiFetch(url, options = {}) {
-    const headers = {
-        "Content-Type": "application/json",
-        ...options.headers,
-    };
-    return fetch(url, { ...options, headers });
-}
 
 // --- Event Listeners ---
 
 generateBtn.addEventListener("click", handleGenerate);
-sendBtn.addEventListener("click", handleSend);
-newConversationBtn.addEventListener("click", startNewConversation);
+sendFeedbackBtn.addEventListener("click", handleFeedback);
+newPlanBtn.addEventListener("click", startNewPlan);
+copyBtn.addEventListener("click", copyPlan);
 
 // Auto-resize textareas
 welcomeInput.addEventListener("input", autoResize);
-chatInput.addEventListener("input", autoResize);
+feedbackInput.addEventListener("input", autoResize);
 
-// Enter to submit (Shift+Enter for newline)
+// Enter to submit
 welcomeInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -70,16 +45,16 @@ welcomeInput.addEventListener("keydown", (e) => {
     }
 });
 
-chatInput.addEventListener("keydown", (e) => {
+feedbackInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !isStreaming) {
         e.preventDefault();
-        handleSend();
+        handleFeedback();
     }
 });
 
 // Enable/disable send button
-chatInput.addEventListener("input", () => {
-    sendBtn.disabled = chatInput.value.trim() === "" || isStreaming;
+feedbackInput.addEventListener("input", () => {
+    sendFeedbackBtn.disabled = feedbackInput.value.trim() === "" || isStreaming;
 });
 
 // --- Core Functions ---
@@ -88,16 +63,11 @@ async function handleGenerate() {
     const content = welcomeInput.value.trim();
     if (!content || isStreaming) return;
 
-    // Show loading immediately (synchronous, before any async work)
-    isStreaming = true;
-    generateBtn.disabled = true;
+    // Switch to plan view immediately
+    showPlanView();
+    setStatus("generating", "Generating...");
     loadingOverlay.classList.remove("hidden");
-
-    // Switch to conversation view and add user message BEFORE awaiting
-    showConversationView();
-    addUserMessage(content);
-    welcomeInput.value = "";
-    welcomeInput.style.height = "auto";
+    copyBtn.classList.add("hidden");
 
     // Create conversation
     try {
@@ -110,40 +80,44 @@ async function handleGenerate() {
         const data = await response.json();
         currentConversationId = data.conversation_id;
 
-        // Stream response
-        await streamResponse(content);
+        // Stream plan generation
+        await streamPlan(content);
     } catch (error) {
-        showError(error.message);
+        planContentEl.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+        setStatus("", "Error");
         loadingOverlay.classList.add("hidden");
         isStreaming = false;
-        generateBtn.disabled = false;
     }
 }
 
-async function handleSend() {
-    const content = chatInput.value.trim();
+async function handleFeedback() {
+    const content = feedbackInput.value.trim();
     if (!content || !currentConversationId || isStreaming) return;
 
-    addUserMessage(content);
-    chatInput.value = "";
-    chatInput.style.height = "auto";
-    sendBtn.disabled = true;
+    isStreaming = true;
+    setStatus("generating", "Refining...");
+    feedbackInput.value = "";
+    feedbackInput.style.height = "auto";
+    sendFeedbackBtn.disabled = true;
+    streamingCursor.classList.remove("hidden");
 
-    await streamResponse(content);
+    try {
+        await streamPlan(content);
+    } catch (error) {
+        setStatus("complete", "Error");
+        isStreaming = false;
+    }
 }
 
-async function streamResponse(userContent) {
+async function streamPlan(userContent) {
     isStreaming = true;
     generateBtn.disabled = true;
-    sendBtn.disabled = true;
-    loadingOverlay.classList.remove("hidden");
+    sendFeedbackBtn.disabled = true;
 
-    // Create a streaming message bubble
-    const assistantBubble = addAssistantMessage("", true);
-
-    // Variables need to be accessible in both try and catch
-    let fullContent = "";
-    let currentEventType = "";
+    // Clear current content and start fresh
+    planContentEl.innerHTML = "";
+    currentPlanContent = "";
+    streamingCursor.classList.remove("hidden");
 
     try {
         const response = await apiFetch(
@@ -162,6 +136,7 @@ async function streamResponse(userContent) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let currentEventType = "";
 
         while (true) {
             const { done, value } = await reader.read();
@@ -179,13 +154,14 @@ async function streamResponse(userContent) {
                         const encoded = line.slice(6).trim();
                         const decoded = decodeBase64(encoded);
                         if (currentEventType === "chunk") {
-                            fullContent += decoded;
-                            updateStreamingMessage(assistantBubble, fullContent);
+                            currentPlanContent += decoded;
+                            renderPlanContent();
                         } else if (currentEventType === "error") {
-                            fullContent += `\n[Error: ${decoded}]`;
-                            updateStreamingMessage(assistantBubble, fullContent);
+                            currentPlanContent += `\n\n[Error: ${decoded}]`;
+                            renderPlanContent();
                         } else if (currentEventType === "done") {
-                            updateStreamingMessage(assistantBubble, decoded || fullContent, false);
+                            currentPlanContent = decoded || currentPlanContent;
+                            renderPlanContent();
                         }
                     } catch (e) {
                         // Skip invalid data
@@ -194,99 +170,32 @@ async function streamResponse(userContent) {
             }
         }
 
-        // If we didn't get a "done" event, finalize anyway
-        if (fullContent) {
-            updateStreamingMessage(assistantBubble, fullContent, false);
+        // Finalize
+        if (currentPlanContent) {
+            renderPlanContent();
         }
     } catch (error) {
-        updateStreamingMessage(
-            assistantBubble,
-            fullContent + `\n\n[Connection error: ${error.message}]`,
-            false
-        );
-        assistantBubble.messageEl.classList.add("error");
+        planContentEl.innerHTML = `<p style="color: var(--error);">Connection error: ${error.message}</p>`;
     } finally {
         isStreaming = false;
         generateBtn.disabled = false;
-        sendBtn.disabled = chatInput.value.trim() === "";
+        sendFeedbackBtn.disabled = feedbackInput.value.trim() === "";
         loadingOverlay.classList.add("hidden");
-        scrollToBottom();
+        streamingCursor.classList.add("hidden");
+        setStatus("complete", "Complete");
+        copyBtn.classList.remove("hidden");
+        scrollToTop();
     }
 }
 
-// --- UI Functions ---
-
-function showConversationView() {
-    welcomeScreen.style.display = "none";
-    conversationView.classList.remove("hidden");
-    chatInput.placeholder = "Provide feedback on the plan...";
-    chatInput.focus();
+function renderPlanContent() {
+    planContentEl.innerHTML = renderMarkdown(currentPlanContent);
+    renderMath();
 }
 
-function addUserMessage(content) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "message user";
-
-    const contentEl = document.createElement("div");
-    contentEl.className = "message-content";
-    contentEl.textContent = content;
-
-    const timestamp = document.createElement("div");
-    timestamp.className = "message-timestamp";
-    timestamp.textContent = formatTime(new Date());
-
-    const contentWrapper = document.createElement("div");
-    contentWrapper.appendChild(contentEl);
-    contentWrapper.appendChild(timestamp);
-
-    wrapper.appendChild(contentWrapper);
-    messagesContainer.appendChild(wrapper);
-    scrollToBottom();
-    return wrapper;
-}
-
-function addAssistantMessage(content = "", streaming = false) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "message assistant";
-
-    const contentWrapper = document.createElement("div");
-
-    const role = document.createElement("div");
-    role.className = "message-role";
-    role.textContent = "Research Plan";
-
-    const contentEl = document.createElement("div");
-    contentEl.className = "message-content plan-content" + (streaming ? " streaming-cursor" : "");
-
-    if (content) {
-        contentEl.innerHTML = renderMarkdown(content);
-    } else {
-        contentEl.innerHTML = '<span class="text-muted">Generating...</span>';
-    }
-
-    const timestamp = document.createElement("div");
-    timestamp.className = "message-timestamp";
-    timestamp.textContent = formatTime(new Date());
-
-    contentWrapper.appendChild(role);
-    contentWrapper.appendChild(contentEl);
-    contentWrapper.appendChild(timestamp);
-
-    wrapper.appendChild(contentWrapper);
-    messagesContainer.appendChild(wrapper);
-    scrollToBottom();
-
-    return { messageEl: wrapper, contentEl, roleEl: role, timestamp };
-}
-
-function updateStreamingMessage(assistantBubble, content, streaming = true) {
-    if (!assistantBubble || !assistantBubble.contentEl) return;
-
-    assistantBubble.contentEl.innerHTML = renderMarkdown(content);
-
-    // Render math formulas with KaTeX
+function renderMath() {
     if (typeof renderMathInElement === 'function') {
-        renderMathInElement(assistantBubble.contentEl, {
+        renderMathInElement(planContentEl, {
             delimiters: [
                 {left: '$$', right: '$$', display: true},
                 {left: '$', right: '$', display: false},
@@ -296,39 +205,68 @@ function updateStreamingMessage(assistantBubble, content, streaming = true) {
             throwOnError: false,
         });
     }
-
-    if (streaming) {
-        assistantBubble.contentEl.classList.add("streaming-cursor");
-    } else {
-        assistantBubble.contentEl.classList.remove("streaming-cursor");
-    }
-
-    scrollToBottom();
 }
 
-function showError(message) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "message assistant error";
+// --- UI Functions ---
 
-    const contentEl = document.createElement("div");
-    contentEl.className = "message-content";
-    contentEl.textContent = `Error: ${message}`;
+function showPlanView() {
+    welcomeScreen.style.display = "none";
+    planView.classList.remove("hidden");
+    feedbackInput.focus();
+}
 
-    wrapper.appendChild(contentEl);
-    messagesContainer.appendChild(wrapper);
-    scrollToBottom();
+function setStatus(type, text) {
+    if (type) {
+        planStatus.classList.remove("hidden", "generating", "complete");
+        planStatus.classList.add(type);
+    } else {
+        planStatus.classList.add("hidden");
+    }
+    planStatus.querySelector(".status-text").textContent = text;
+}
+
+function startNewPlan() {
+    if (isStreaming) return;
+
+    currentConversationId = null;
+    currentPlanContent = "";
+    planContentEl.innerHTML = "";
+    planView.classList.add("hidden");
+    welcomeScreen.style.display = "flex";
+    feedbackInput.value = "";
+    welcomeInput.value = "";
+    welcomeInput.style.height = "auto";
+    welcomeInput.focus();
+    copyBtn.classList.add("hidden");
+    setStatus("", "");
+}
+
+async function copyPlan() {
+    if (!currentPlanContent) return;
+    try {
+        await navigator.clipboard.writeText(currentPlanContent);
+        const origText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+        setTimeout(() => { copyBtn.innerHTML = origText; }, 2000);
+    } catch (e) {
+        // Fallback
+        const textarea = document.createElement("textarea");
+        textarea.value = currentPlanContent;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+    }
 }
 
 // --- Markdown Rendering ---
 
 function parseTableRow(line) {
-    // Remove leading/trailing |, then split by |
     line = line.replace(/^\||\|$/g, '').trim();
     return line.split('|').map(c => c.trim());
 }
 
 function renderInlineMarkdown(text) {
-    // Lightweight inline-only rendering for table cells
     text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
     text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
     text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -342,7 +280,7 @@ function renderMarkdown(text) {
 
     let html = text;
 
-    // Code blocks (``` ... ```)
+    // Code blocks
     html = html.replace(
         /```(\w*)\n([\s\S]*?)```/g,
         (_, lang, code) => `<pre><code class="language-${lang}">${escapeHtml(code.trim())}</code></pre>`
@@ -372,12 +310,10 @@ function renderMarkdown(text) {
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 
-    // Markdown tables: find consecutive | lines and convert to <table>
+    // Tables
     html = html.replace(/((?:^\|.+\n?)+)/gm, (match) => {
         const lines = match.trim().split('\n');
         if (lines.length < 2) return match;
-
-        // Check if it's a valid table (line 1 has |, line 2 is separator with ---)
         if (!lines[1].match(/^\|?[\s\-:|]+\|?$/)) return match;
 
         const headerCells = parseTableRow(lines[0]);
@@ -400,26 +336,21 @@ function renderMarkdown(text) {
         return tableHtml;
     });
 
-    // Unordered lists
+    // Lists
     html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
-
-    // Ordered lists
     html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-
-    // Wrap consecutive <li> in <ul>
     html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
 
-    // Paragraphs: wrap lines that aren't already in HTML tags
+    // Paragraphs
     html = html.replace(
         /^(?!<)(.+)$/gm,
         (match) => {
-            // Skip if it's already wrapped in a block element
             if (match.trim() === "") return "";
             return `<p>${match}</p>`;
         }
     );
 
-    // Clean up extra newlines
+    // Cleanup
     html = html.replace(/\n{2,}/g, "");
     html = html.replace(/<\/ul>\s*<ul>/g, "");
 
@@ -449,25 +380,22 @@ function autoResize(e) {
     el.style.height = Math.min(el.scrollHeight, 150) + "px";
 }
 
-function scrollToBottom() {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+function scrollToTop() {
+    const container = planContentEl.closest('.plan-container');
+    if (container) container.scrollTop = 0;
 }
 
 function formatTime(date) {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-async function startNewConversation() {
-    if (isStreaming) return;
-
-    currentConversationId = null;
-    messagesContainer.innerHTML = "";
-    conversationView.classList.add("hidden");
-    welcomeScreen.style.display = "flex";
-    chatInput.value = "";
-    welcomeInput.value = "";
-    welcomeInput.style.height = "auto";
-    welcomeInput.focus();
+// Helper: fetch
+function apiFetch(url, options = {}) {
+    const headers = {
+        "Content-Type": "application/json",
+        ...options.headers,
+    };
+    return fetch(url, { ...options, headers });
 }
 
 // Initialize
