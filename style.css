@@ -570,6 +570,101 @@ body {
     color: var(--error);
 }
 
+/* === Invite Code Screen === */
+.invite-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.invite-screen.hidden {
+    display: none;
+}
+
+.invite-card {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    padding: 40px 32px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.invite-icon {
+    margin-bottom: 24px;
+    color: var(--accent);
+}
+
+.invite-card h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.invite-desc {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 28px;
+    line-height: 1.6;
+}
+
+.invite-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.invite-input {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    text-align: center;
+    letter-spacing: 4px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.invite-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.invite-input::placeholder {
+    color: var(--text-muted);
+    letter-spacing: 0;
+    text-align: left;
+}
+
+.invite-error {
+    color: var(--error);
+    font-size: 13px;
+    margin-top: 14px;
+    animation: fadeIn 0.3s ease;
+}
+
+.invite-error.hidden {
+    display: none;
+}
+
+/* Logout button */
+.btn-icon {
+    padding: 8px;
+    min-width: 36px;
+    justify-content: center;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
     .header {
