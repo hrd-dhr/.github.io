@@ -4,8 +4,8 @@
  */
 
 // API endpoint — update this when the tunnel URL changes
-// Current tunnel: https://little-carpets-follow.loca.lt
-const API_BASE = "https://little-carpets-follow.loca.lt";
+// Current tunnel: https://full-lions-change.loca.lt
+const API_BASE = "https://full-lions-change.loca.lt";
 
 // Invite codes (shown on the page — users need to request one from the owner)
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
