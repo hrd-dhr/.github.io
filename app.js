@@ -3,9 +3,8 @@
  * Handles conversation flow, SSE streaming, and markdown rendering.
  */
 
-// API endpoint — update this when the tunnel URL changes
-// Current tunnel: https://planer-web-test.loca.lt
-const API_BASE = "https://planer-web-test.loca.lt";
+// API endpoint — dynamically uses the same host as the page
+const API_BASE = window.location.origin;
 
 // Invite codes removed — no auth required
 // const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
