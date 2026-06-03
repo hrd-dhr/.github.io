@@ -7,23 +7,15 @@
 // Current tunnel: https://weak-days-worry.loca.lt
 const API_BASE = "https://weak-days-worry.loca.lt";
 
-// Invite codes (shown on the page — users need to request one from the owner)
-const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
+// Invite codes removed — no auth required
+// const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
 
 // State
 let currentConversationId = null;
 let isStreaming = false;
-let isAuthenticated = localStorage.getItem("invite_code") ? true : false;
-let storedCode = localStorage.getItem("invite_code") || "";
 
 // DOM Elements
-const inviteBanner = document.getElementById("invite-banner");
-const inviteInput = document.getElementById("invite-input");
-const inviteSubmitBtn = document.getElementById("invite-submit-btn");
-const inviteError = document.getElementById("invite-error");
-const inviteCodeDisplay = document.getElementById("invite-code-display");
-
-const authStatus = document.getElementById("auth-status");
+// Invite elements removed
 const welcomeScreen = document.getElementById("welcome-screen");
 const mainContent = document.querySelector(".main-content");
 const conversationView = document.getElementById("conversation-view");
@@ -32,147 +24,30 @@ const chatInput = document.getElementById("chat-input");
 const generateBtn = document.getElementById("generate-btn");
 const sendBtn = document.getElementById("send-btn");
 const newConversationBtn = document.getElementById("new-conversation-btn");
-const logoutBtn = document.getElementById("logout-btn");
 const messagesContainer = document.getElementById("messages-container");
 const loadingOverlay = document.getElementById("loading-overlay");
 
-// --- Invite Code Display ---
-inviteCodeDisplay.textContent = SHOW_CODES.join(" / ");
-inviteCodeDisplay.addEventListener("click", () => {
-    // Cycle through codes on click for visibility
-    const currentIdx = inviteCodeDisplay.dataset.idx || "0";
-    const nextIdx = (parseInt(currentIdx) + 1) % SHOW_CODES.length;
-    inviteCodeDisplay.textContent = SHOW_CODES[nextIdx];
-    inviteCodeDisplay.dataset.idx = String(nextIdx);
-    // Also copy to clipboard
-    navigator.clipboard?.writeText(SHOW_CODES[nextIdx]);
-    inviteCodeDisplay.title = "Copied!";
-    setTimeout(() => { inviteCodeDisplay.title = ""; }, 1000);
-});
-
-// --- Invite Banner ---
-
-inviteSubmitBtn.addEventListener("click", handleInviteSubmit);
-inviteInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        handleInviteSubmit();
-    }
-});
-
-logoutBtn.addEventListener("click", handleLock);
-
-// Check if already authenticated on load
-if (isAuthenticated) {
-    verifyStoredCode();
-} else {
-    inviteInput.focus();
-    setLockedState(true);
-}
-
-async function verifyStoredCode() {
-    // Re-verify stored code on page load
-    try {
-        const response = await fetch(`${API_BASE}/api/invite/validate`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: storedCode }),
-        });
-        const data = await response.json();
-        if (data.valid) {
-            setLockedState(false);
-        } else {
-            // Code was revoked or expired
-            localStorage.removeItem("invite_code");
-            isAuthenticated = false;
-            storedCode = "";
-            inviteInput.value = "";
-            inviteInput.focus();
-            setLockedState(true);
-        }
-    } catch {
-        // Network error — allow use if already authenticated
-        setLockedState(false);
-    }
-}
-
-async function handleInviteSubmit() {
-    const code = inviteInput.value.trim().toUpperCase();
-    if (!code) return;
-
-    inviteSubmitBtn.disabled = true;
-    inviteError.classList.add("hidden");
-
-    try {
-        const response = await fetch(`${API_BASE}/api/invite/validate`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
-        });
-        const data = await response.json();
-
-        if (data.valid) {
-            storedCode = code;
-            isAuthenticated = true;
-            localStorage.setItem("invite_code", code);
-            inviteBanner.classList.add("hidden");
-            setLockedState(false);
-        } else {
-            inviteError.classList.remove("hidden");
-            inviteInput.value = "";
-            inviteInput.focus();
-        }
-    } catch (error) {
-        inviteError.textContent = "Connection error";
-        inviteError.classList.remove("hidden");
-    } finally {
-        inviteSubmitBtn.disabled = false;
-    }
-}
+// App is always unlocked
+setLockedState(false);
 
 function setLockedState(locked) {
     welcomeInput.disabled = locked;
     chatInput.disabled = locked;
     generateBtn.disabled = locked;
-    sendBtn.disabled = true;
+    sendBtn.disabled = false;
 
     if (locked) {
-        authStatus.classList.remove("authenticated");
-        authStatus.querySelector(".status-text").textContent = "Locked";
-        authStatus.title = "Enter invite code to unlock";
         mainContent.classList.add("locked");
     } else {
-        authStatus.classList.add("authenticated");
-        authStatus.querySelector(".status-text").textContent = "Unlocked";
-        authStatus.title = "Authenticated with invite code";
         mainContent.classList.remove("locked");
         welcomeInput.focus();
     }
 }
 
-function handleLock() {
-    if (isStreaming) return;
-    localStorage.removeItem("invite_code");
-    isAuthenticated = false;
-    storedCode = "";
-    inviteInput.value = "";
-    inviteError.classList.add("hidden");
-    inviteBanner.classList.remove("hidden");
-    inviteInput.focus();
-    setLockedState(true);
-    // Reset conversation
-    currentConversationId = null;
-    messagesContainer.innerHTML = "";
-    conversationView.classList.add("hidden");
-    welcomeScreen.style.display = "flex";
-    welcomeInput.value = "";
-}
-
-// Helper: fetch with invite code header
+// Helper: fetch without invite code header
 function apiFetch(url, options = {}) {
     const headers = {
         "Content-Type": "application/json",
-        "X-Invite-Code": storedCode,
         ...options.headers,
     };
     return fetch(url, { ...options, headers });
