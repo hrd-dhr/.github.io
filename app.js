@@ -4,7 +4,7 @@
  */
 
 // API endpoint — dynamically uses the same host as the page
-const API_BASE = window.location.origin;
+const API_BASE = "https://tame-walls-laugh.loca.lt";
 
 // Invite codes removed — no auth required
 // const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
