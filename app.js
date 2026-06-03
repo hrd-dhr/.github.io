@@ -10,8 +10,15 @@ const API_BASE = "https://little-carpets-follow.loca.lt";
 // State
 let currentConversationId = null;
 let isStreaming = false;
+let inviteCode = localStorage.getItem("invite_code") || "";
 
 // DOM Elements
+const inviteScreen = document.getElementById("invite-screen");
+const inviteInput = document.getElementById("invite-input");
+const inviteSubmitBtn = document.getElementById("invite-submit-btn");
+const inviteError = document.getElementById("invite-error");
+const appContainer = document.getElementById("app-container");
+
 const welcomeScreen = document.getElementById("welcome-screen");
 const conversationView = document.getElementById("conversation-view");
 const welcomeInput = document.getElementById("welcome-input");
@@ -19,8 +26,93 @@ const chatInput = document.getElementById("chat-input");
 const generateBtn = document.getElementById("generate-btn");
 const sendBtn = document.getElementById("send-btn");
 const newConversationBtn = document.getElementById("new-conversation-btn");
+const logoutBtn = document.getElementById("logout-btn");
 const messagesContainer = document.getElementById("messages-container");
 const loadingOverlay = document.getElementById("loading-overlay");
+
+// --- Invite Code ---
+
+inviteSubmitBtn.addEventListener("click", handleInviteSubmit);
+inviteInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        handleInviteSubmit();
+    }
+});
+
+logoutBtn.addEventListener("click", handleLogout);
+
+// Check if already has a valid invite code on load
+if (inviteCode) {
+    showApp();
+} else {
+    inviteInput.focus();
+}
+
+async function handleInviteSubmit() {
+    const code = inviteInput.value.trim();
+    if (!code) return;
+
+    inviteSubmitBtn.disabled = true;
+    inviteError.classList.add("hidden");
+
+    try {
+        const response = await fetch(`${API_BASE}/api/invite/validate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+        });
+        const data = await response.json();
+
+        if (data.valid) {
+            inviteCode = code;
+            localStorage.setItem("invite_code", code);
+            showApp();
+        } else {
+            inviteError.classList.remove("hidden");
+            inviteInput.value = "";
+            inviteInput.focus();
+        }
+    } catch (error) {
+        inviteError.textContent = "Connection error. Please try again.";
+        inviteError.classList.remove("hidden");
+    } finally {
+        inviteSubmitBtn.disabled = false;
+    }
+}
+
+function showApp() {
+    inviteScreen.classList.add("hidden");
+    appContainer.style.display = "flex";
+    welcomeInput.focus();
+}
+
+function handleLogout() {
+    if (isStreaming) return;
+    localStorage.removeItem("invite_code");
+    inviteCode = "";
+    appContainer.style.display = "none";
+    inviteScreen.classList.remove("hidden");
+    inviteInput.value = "";
+    inviteError.classList.add("hidden");
+    inviteInput.focus();
+    // Reset conversation
+    currentConversationId = null;
+    messagesContainer.innerHTML = "";
+    conversationView.classList.add("hidden");
+    welcomeScreen.style.display = "flex";
+    welcomeInput.value = "";
+}
+
+// Helper: fetch with invite code header
+function apiFetch(url, options = {}) {
+    const headers = {
+        "Content-Type": "application/json",
+        "X-Invite-Code": inviteCode,
+        ...options.headers,
+    };
+    return fetch(url, { ...options, headers });
+}
 
 // --- Event Listeners ---
 
@@ -60,7 +152,7 @@ async function handleGenerate() {
 
     // Create conversation
     try {
-        const response = await fetch(`${API_BASE}/api/conversations`, {
+        const response = await apiFetch(`${API_BASE}/api/conversations`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
         });
@@ -108,7 +200,7 @@ async function streamResponse(userContent) {
     const assistantBubble = addAssistantMessage("", true);
 
     try {
-        const response = await fetch(
+        const response = await apiFetch(
             `${API_BASE}/api/conversations/${currentConversationId}/message`,
             {
                 method: "POST",
