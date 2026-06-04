@@ -3,8 +3,8 @@
  * Document-style plan viewer with iterative refinement.
  */
 
-// API endpoint — updated by restart-tunnel.sh
-const API_BASE = "https://ripe-signs-spend.loca.lt";
+// API endpoint — empty string uses same origin (localhost:8000)
+const API_BASE = "https://angry-squids-smash.loca.lt";
 
 // Invite codes shown on the banner
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
