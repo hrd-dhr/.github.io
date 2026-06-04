@@ -4,7 +4,7 @@
  */
 
 // API endpoint — empty string uses same origin (localhost:8000)
-const API_BASE = "https://strong-mice-beg.loca.lt";
+const API_BASE = "https://pink-cows-clean.loca.lt";
 
 // Invite codes shown on the banner
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
