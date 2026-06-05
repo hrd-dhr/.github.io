@@ -3,8 +3,10 @@
  * Document-style plan viewer with iterative refinement.
  */
 
-// API endpoint — empty string uses same origin (localhost:8000)
-const API_BASE = "https://ripe-yaks-judge.loca.lt";
+// API endpoint — auto-detect: empty string for same-origin (localhost:8000),
+// tunnel URL for GitHub Pages (set by restart-tunnel.sh deployment).
+const API_BASE_TUNNEL = "https://beige-turkeys-mix.loca.lt";
+const API_BASE = API_BASE_TUNNEL || "";
 
 // Invite codes shown on the banner
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
