@@ -3,10 +3,12 @@
  * Document-style plan viewer with iterative refinement.
  */
 
-// API endpoint — auto-detect: empty string for same-origin (localhost:8000),
-// tunnel URL for GitHub Pages (set by restart-tunnel.sh deployment).
-const API_BASE_TUNNEL = "https://beige-turkeys-mix.loca.lt";
-const API_BASE = API_BASE_TUNNEL || "";
+// API endpoint — auto-detect: same-origin for localhost, tunnel URL for GitHub Pages.
+// The DEPLOY_API_BASE is injected by restart-tunnel.sh for remote access only.
+const DEPLOY_API_BASE = "https://thin-guests-bet.loca.lt";
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? ""
+    : DEPLOY_API_BASE;
 
 // Invite codes shown on the banner
 const SHOW_CODES = ["XURB-7F2A-9DC4-E831", "PLAN-4E19-8BA2-CF67", "SCI-3B06-A0C9-438A"];
