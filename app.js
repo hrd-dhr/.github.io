@@ -5,7 +5,7 @@
 
 // API endpoint — auto-detect: same-origin for localhost, tunnel URL for GitHub Pages.
 // The DEPLOY_API_BASE is injected by restart-tunnel.sh for remote access only.
-const DEPLOY_API_BASE = "https://legal-pets-lay.loca.lt";
+const DEPLOY_API_BASE = "https://true-peas-sink.loca.lt";
 const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
     ? ""
     : DEPLOY_API_BASE;
